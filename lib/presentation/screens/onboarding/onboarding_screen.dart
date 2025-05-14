@@ -11,7 +11,9 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
+  final BudgetBossLogger _logger = BudgetBossLogger(); // ✅ Instance usage
   int _currentPage = 0;
+
   final List<Map<String, dynamic>> _onboardingData = [
     {
       'title': 'Welcome to Your\nBudget Boss',
@@ -63,7 +65,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   void initState() {
     super.initState();
-    BudgetBossLogger.log('OnboardingScreen initialized');
+    _logger.log('OnboardingScreen initialized');
   }
 
   @override
@@ -72,9 +74,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.dispose();
   }
 
-  // New method to navigate to auth screen
   void _navigateToAuth() {
-    BudgetBossLogger.log('Navigating to Auth Screen');
+    _logger.log('Navigating to Auth Screen');
     Navigator.pushReplacementNamed(context, '/auth');
   }
 
@@ -83,7 +84,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Background with curved bottom
           PageView.builder(
             controller: _pageController,
             onPageChanged: (index) {
@@ -98,7 +98,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: ListView(
                   padding: EdgeInsets.zero,
                   children: [
-                    // Top blue curved background
                     ClipPath(
                       clipper: CurvedBottomClipper(),
                       child: Container(
@@ -126,8 +125,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         ),
                       ),
                     ),
-
-                    // Main image
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 20),
                       child: Center(
@@ -136,7 +133,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           height: MediaQuery.of(context).size.height * 0.25,
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) {
-                            BudgetBossLogger.error(
+                            _logger.error(
                               'Image loading error',
                               error,
                               stackTrace,
@@ -146,8 +143,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         ),
                       ),
                     ),
-
-                    // Subtitle
                     if ((_onboardingData[index]['subtitle'] ?? '').isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -160,10 +155,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ),
                         ),
                       ),
-
                     const SizedBox(height: 40),
-
-                    // Bottom indicators and line
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(
@@ -179,21 +171,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         color: Colors.grey[300],
                       ),
                     ),
-                    const SizedBox(height: 80), // adds space above button
+                    const SizedBox(height: 80),
                   ],
                 ),
               );
             },
           ),
-
-          // Next/Get Started button
           Positioned(
             bottom: 40,
             right: 20,
             child: ElevatedButton(
               onPressed: () {
                 if (_currentPage == _onboardingData.length - 1) {
-                  // This is the key change: navigate to auth screen instead of home
                   _navigateToAuth();
                 } else {
                   _pageController.nextPage(
@@ -216,8 +205,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
           ),
-
-          // Skip button - Added to allow skipping directly to auth
           Positioned(
             bottom: 40,
             left: 20,
@@ -252,7 +239,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-// Custom clipper for curved bottom edge
 class CurvedBottomClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
@@ -283,7 +269,5 @@ class CurvedBottomClipper extends CustomClipper<Path> {
   }
 
   @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) {
-    return false;
-  }
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

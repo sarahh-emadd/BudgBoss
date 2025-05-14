@@ -1,7 +1,7 @@
 // lib/data/services/report_service.dart
+import 'package:budget_boss_new/data/expense_data.dart';
 import 'package:flutter/material.dart';
-import '../models/expense.dart';
-import '../../logging/budget_boss_logger.dart';
+import 'package:budget_boss_new/logging/budget_boss_logger.dart';
 
 // Strategy interface
 abstract class ReportStrategy {
@@ -9,17 +9,19 @@ abstract class ReportStrategy {
   String getReportName();
 }
 
+// Shared logger instance
+final logger = BudgetBossLogger();
+
 // Pie Chart Report Strategy
 class PieChartReportStrategy implements ReportStrategy {
   @override
   String getReportName() {
     return 'Category Distribution';
   }
-  
+
   @override
   Widget generateReport(List<Expense> expenses) {
-    BudgetBossLogger.log('Generating pie chart report');
-    // In a real implementation, this would return a pie chart widget
+    logger.log('Generating pie chart report');
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -31,7 +33,7 @@ class PieChartReportStrategy implements ReportStrategy {
       ),
     );
   }
-  
+
   double _calculateTotalExpenses(List<Expense> expenses) {
     return expenses.fold(0, (sum, expense) => sum + expense.amount);
   }
@@ -43,11 +45,10 @@ class BarChartReportStrategy implements ReportStrategy {
   String getReportName() {
     return 'Monthly Spending';
   }
-  
+
   @override
   Widget generateReport(List<Expense> expenses) {
-    BudgetBossLogger.log('Generating bar chart report');
-    // In a real implementation, this would return a bar chart widget
+    logger.log('Generating bar chart report');
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -67,11 +68,10 @@ class LineChartReportStrategy implements ReportStrategy {
   String getReportName() {
     return 'Spending Trends';
   }
-  
+
   @override
   Widget generateReport(List<Expense> expenses) {
-    BudgetBossLogger.log('Generating line chart report');
-    // In a real implementation, this would return a line chart widget
+    logger.log('Generating line chart report');
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -88,18 +88,18 @@ class LineChartReportStrategy implements ReportStrategy {
 // Report Context
 class ReportContext {
   ReportStrategy _strategy;
-  
+
   ReportContext(this._strategy);
-  
+
   void setStrategy(ReportStrategy strategy) {
     _strategy = strategy;
-    BudgetBossLogger.log('Report strategy changed to: ${strategy.getReportName()}');
+    logger.log('Report strategy changed to: ${strategy.getReportName()}');
   }
-  
+
   Widget generateReport(List<Expense> expenses) {
     return _strategy.generateReport(expenses);
   }
-  
+
   String getReportName() {
     return _strategy.getReportName();
   }

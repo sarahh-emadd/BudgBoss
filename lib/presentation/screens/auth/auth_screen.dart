@@ -1,4 +1,4 @@
-// lib/presentation/screens/auth/firebase_auth_screen.dart
+// lib/presentation/screens/auth/auth_screen.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/constants/colors.dart';
@@ -22,19 +22,20 @@ class _FirebaseAuthScreenState extends State<FirebaseAuthScreen>
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
 
+  final FirebaseAuthService _authService = FirebaseAuthService();
+  final BudgetBossLogger _logger = BudgetBossLogger();
+
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _acceptTerms = false;
   bool _isLoading = false;
   String? _errorMessage;
 
-  final FirebaseAuthService _authService = FirebaseAuthService();
-
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    BudgetBossLogger.log('FirebaseAuthScreen initialized');
+    _logger.log('FirebaseAuthScreen initialized');
   }
 
   @override
@@ -46,181 +47,6 @@ class _FirebaseAuthScreenState extends State<FirebaseAuthScreen>
     _nameController.dispose();
     _phoneController.dispose();
     super.dispose();
-  }
-
-  Future<void> _handleLogin() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      await _authService.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
-      BudgetBossLogger.log('Login successful');
-
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
-      }
-    } on FirebaseAuthException catch (e) {
-      setState(() {
-        switch (e.code) {
-          case 'user-not-found':
-            _errorMessage = 'No user found with this email.';
-            break;
-          case 'wrong-password':
-            _errorMessage = 'Incorrect password.';
-            break;
-          case 'invalid-email':
-            _errorMessage = 'Invalid email format.';
-            break;
-          case 'user-disabled':
-            _errorMessage = 'This account has been disabled.';
-            break;
-          default:
-            _errorMessage = 'Login failed: ${e.message}';
-        }
-      });
-      BudgetBossLogger.error('Login error: ${e.code}', e);
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'An unexpected error occurred.';
-      });
-      BudgetBossLogger.error('Login unexpected error', e);
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _handleRegister() async {
-    if (_passwordController.text != _confirmPasswordController.text) {
-      setState(() {
-        _errorMessage = 'Passwords do not match';
-      });
-      return;
-    }
-
-    if (_passwordController.text.length < 6) {
-      setState(() {
-        _errorMessage = 'Password must be at least 6 characters';
-      });
-      return;
-    }
-
-    if (!_acceptTerms) {
-      setState(() {
-        _errorMessage = 'Please accept the Terms & Conditions';
-      });
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      await _authService.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
-
-      BudgetBossLogger.log('Registration successful');
-
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
-      }
-    } on FirebaseAuthException catch (e) {
-      setState(() {
-        switch (e.code) {
-          case 'email-already-in-use':
-            _errorMessage = 'This email is already registered.';
-            break;
-          case 'invalid-email':
-            _errorMessage = 'Invalid email format.';
-            break;
-          case 'weak-password':
-            _errorMessage = 'Password is too weak.';
-            break;
-          default:
-            _errorMessage = 'Registration failed: ${e.message}';
-        }
-      });
-      BudgetBossLogger.error('Registration error: ${e.code}', e);
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'An unexpected error occurred.';
-      });
-      BudgetBossLogger.error('Registration unexpected error', e);
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _handleForgotPassword() async {
-    if (_emailController.text.isEmpty) {
-      setState(() {
-        _errorMessage = 'Please enter your email address';
-      });
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      await _authService.sendPasswordResetEmail(
-        email: _emailController.text.trim(),
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Password reset email sent! Check your inbox.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-
-      BudgetBossLogger.log('Password reset email sent');
-    } on FirebaseAuthException catch (e) {
-      setState(() {
-        switch (e.code) {
-          case 'user-not-found':
-            _errorMessage = 'No user found with this email.';
-            break;
-          case 'invalid-email':
-            _errorMessage = 'Invalid email format.';
-            break;
-          default:
-            _errorMessage = 'Failed to send reset email: ${e.message}';
-        }
-      });
-      BudgetBossLogger.error('Password reset error: ${e.code}', e);
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'An unexpected error occurred.';
-      });
-      BudgetBossLogger.error('Password reset unexpected error', e);
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
   }
 
   @override
@@ -271,7 +97,7 @@ class _FirebaseAuthScreenState extends State<FirebaseAuthScreen>
                   : 'assets/images/icons/undraw_young-man-avatar_wgbd-removebg-preview.png',
               height: 150,
               errorBuilder: (context, error, stackTrace) {
-                BudgetBossLogger.error('Image load error', error, stackTrace);
+                _logger.error('Image load error', error, stackTrace);
                 return Icon(
                   isLogin ? Icons.security : Icons.person_add,
                   size: 100,
@@ -296,7 +122,6 @@ class _FirebaseAuthScreenState extends State<FirebaseAuthScreen>
           ),
           const SizedBox(height: 24),
 
-          // Error message
           if (_errorMessage != null)
             Container(
               padding: const EdgeInsets.all(12),
@@ -312,86 +137,53 @@ class _FirebaseAuthScreenState extends State<FirebaseAuthScreen>
               ),
             ),
 
-          // Sign Up fields
           if (!isLogin) ...[
             TextField(
               controller: _nameController,
-              decoration: InputDecoration(
-                labelText: 'Full Name',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                prefixIcon: const Icon(Icons.person),
-              ),
+              decoration: const InputDecoration(labelText: 'Full Name'),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
-              decoration: InputDecoration(
-                labelText: 'Mobile Number',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                prefixIcon: const Icon(Icons.phone_android),
-              ),
+              decoration: const InputDecoration(labelText: 'Mobile Number'),
             ),
             const SizedBox(height: 16),
           ],
 
-          // Email
           TextField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
-            decoration: InputDecoration(
-              labelText: 'Email',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              prefixIcon: const Icon(Icons.email),
-            ),
+            decoration: const InputDecoration(labelText: 'Email'),
           ),
           const SizedBox(height: 16),
 
-          // Password
           TextField(
             controller: _passwordController,
             obscureText: !_isPasswordVisible,
             decoration: InputDecoration(
               labelText: 'Password',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              prefixIcon: const Icon(Icons.lock),
               suffixIcon: IconButton(
                 icon: Icon(
                   _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
                 ),
                 onPressed:
-                    () => setState(() {
-                      _isPasswordVisible = !_isPasswordVisible;
-                    }),
+                    () => setState(
+                      () => _isPasswordVisible = !_isPasswordVisible,
+                    ),
               ),
             ),
           ),
 
-          // Forgot Password link
           if (isLogin)
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: _isLoading ? null : _handleForgotPassword,
-                child: const Text(
-                  'Forgot Password?',
-                  style: TextStyle(
-                    color: AppColors.primaryColor,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                child: const Text('Forgot Password?'),
               ),
             ),
 
-          // Confirm & Terms for Sign Up
           if (!isLogin) ...[
             const SizedBox(height: 16),
             TextField(
@@ -399,10 +191,6 @@ class _FirebaseAuthScreenState extends State<FirebaseAuthScreen>
               obscureText: !_isConfirmPasswordVisible,
               decoration: InputDecoration(
                 labelText: 'Confirm Password',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                prefixIcon: const Icon(Icons.lock_outline),
                 suffixIcon: IconButton(
                   icon: Icon(
                     _isConfirmPasswordVisible
@@ -410,9 +198,11 @@ class _FirebaseAuthScreenState extends State<FirebaseAuthScreen>
                         : Icons.visibility_off,
                   ),
                   onPressed:
-                      () => setState(() {
-                        _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
-                      }),
+                      () => setState(
+                        () =>
+                            _isConfirmPasswordVisible =
+                                !_isConfirmPasswordVisible,
+                      ),
                 ),
               ),
             ),
@@ -422,9 +212,7 @@ class _FirebaseAuthScreenState extends State<FirebaseAuthScreen>
                 Checkbox(
                   value: _acceptTerms,
                   onChanged:
-                      (value) => setState(() {
-                        _acceptTerms = value ?? false;
-                      }),
+                      (value) => setState(() => _acceptTerms = value ?? false),
                 ),
                 const Expanded(
                   child: Text('I accept the Terms and Conditions'),
@@ -436,11 +224,7 @@ class _FirebaseAuthScreenState extends State<FirebaseAuthScreen>
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed:
-                _isLoading
-                    ? null
-                    : isLogin
-                    ? _handleLogin
-                    : _handleRegister,
+                _isLoading ? null : (isLogin ? _handleLogin : _handleRegister),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryColor,
               foregroundColor: Colors.white,
@@ -467,5 +251,127 @@ class _FirebaseAuthScreenState extends State<FirebaseAuthScreen>
         ],
       ),
     );
+  }
+
+  Future<void> _handleLogin() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await _authService.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+      _logger.log('Login successful');
+
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _errorMessage = e.message;
+      });
+      _logger.error('Login error: ${e.code}', e);
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'An unexpected error occurred.';
+      });
+      _logger.error('Login unexpected error', e);
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _handleRegister() async {
+    if (_passwordController.text != _confirmPasswordController.text) {
+      setState(() => _errorMessage = 'Passwords do not match');
+      return;
+    }
+    if (_passwordController.text.length < 6) {
+      setState(() => _errorMessage = 'Password must be at least 6 characters');
+      return;
+    }
+    if (!_acceptTerms) {
+      setState(() => _errorMessage = 'Please accept the Terms & Conditions');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await _authService.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+      _logger.log('Registration successful');
+
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _errorMessage = e.message;
+      });
+      _logger.error('Registration error: ${e.code}', e);
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'An unexpected error occurred.';
+      });
+      _logger.error('Registration unexpected error', e);
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _handleForgotPassword() async {
+    if (_emailController.text.isEmpty) {
+      setState(() => _errorMessage = 'Please enter your email address');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await _authService.sendPasswordResetEmail(
+        email: _emailController.text.trim(),
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Password reset email sent! Check your inbox.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+
+      _logger.log('Password reset email sent');
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _errorMessage = e.message;
+      });
+      _logger.error('Password reset error: ${e.code}', e);
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'An unexpected error occurred.';
+      });
+      _logger.error('Password reset unexpected error', e);
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 }
